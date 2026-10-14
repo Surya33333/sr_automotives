@@ -1,0 +1,69 @@
+@import "tailwindcss";
+@theme {
+  --breakpoint-xs: 360px;
+}
+:root {
+  --background: #f8f6f1;
+  --foreground: #111111;
+  --brand-black: #080909;
+  --brand-charcoal: #151515;
+  --brand-gold: #c99655;
+  --brand-gold-dark: #C9B083;
+  --brand-gold-light: #f0dca9;
+  --brand-cream: #f8f6f1;
+  --brand-white: #ffffff;
+  --text-primary: #111111;
+  --text-secondary: #6f6b64;
+  --border: #e5ded1;
+}
+* {
+  box-sizing: border-box;
+}
+html {
+  scroll-behavior: smooth;
+}
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+}
+/* Shared horizontal container for Navbar, Footer and all page sections */
+.section-container {
+  width: 100%;
+  max-width: 1440px;
+  margin-inline: auto;
+  padding-inline: 12px;
+}
+
+@media (min-width: 360px) {
+  .section-container { padding-inline: 16px; }
+}
+
+@media (min-width: 640px) {
+  .section-container { padding-inline: 20px; }
+}
+
+@media (min-width: 1024px) {
+  .section-container { padding-inline: 24px; }
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+a {
+  text-decoration: none;
+}
+img {
+  max-width: 100%;
+  height: auto;
+}
+::selection {
+  background: var(--brand-gold);
+  color: var(--brand-black);
+}
