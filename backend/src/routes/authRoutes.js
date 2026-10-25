@@ -1,5 +1,5 @@
 import express from "express";
-import { registerCustomer, loginCustomer, getCustomerProfile, updateCustomerProfile, changePassword } from "../controllers/authController.js";
+import { sendOTP, verifyOTP, getOtpStatus, cancelOtp, getCustomerProfile, updateCustomerProfile } from "../controllers/authController.js";
 import { getCategories, getSubcategoriesByCategory, getProducts, getProductsByCategory, getFeaturedProducts, getTestimonials } from "../controllers/productController.js";
 import { addVehicle, getCustomerVehicles, updateVehicle, deleteVehicle } from "../controllers/vehicleController.js";
 import { getServices } from "../controllers/serviceController.js";
@@ -9,11 +9,17 @@ import { createOrder, getCustomerOrders, getOrderById } from "../controllers/ord
 import authMiddleware from "../middleware/authMiddleware.js";
 const router = express.Router();
 
-router.post("/register", registerCustomer);//Register Customer
-router.post("/login", loginCustomer);//Login Customer
-router.get("/profile", authMiddleware, getCustomerProfile);//Get Customer Profile
-router.put("/profile", authMiddleware, updateCustomerProfile);//Update Customer Profile
-router.put("/change-password", authMiddleware, changePassword);//Change Password
+// OTP Authentication
+router.post("/send-otp", sendOTP);
+router.post("/verify-otp", verifyOTP);
+ 
+// OTP Management
+router.get("/otp/status", getOtpStatus);
+router.delete("/otp", cancelOtp);
+
+// Customer Profile
+router.get("/profile", authMiddleware, getCustomerProfile);
+router.put("/profile", authMiddleware, updateCustomerProfile);
 
 router.post("/vehicle", authMiddleware, addVehicle);//Add Vehicle for logged in user
 router.get("/vehicles", authMiddleware, getCustomerVehicles);//Get All Vehicles for logged in user

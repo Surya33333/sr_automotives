@@ -1,0 +1,166 @@
+CREATE TABLE customers (
+   customer_id INT PRIMARY KEY,
+   customer_fullname VARCHAR(100) NOT NULL,
+   customer_phone VARCHAR(15) NOT NULL UNIQUE,
+   customer_passwordhash VARCHAR(255) NOT NULL,
+   customer_shippingaddress JSON,
+   customer_profileurl VARCHAR(500),
+   customer_createdat DATETIME DEFAULT CURRENT_TIMESTAMP,
+   customer_updatedat DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+CREATE TABLE customer_vehicles (
+   customer_id INT NOT NULL,
+   vehicle_brand VARCHAR(25) NOT NULL,
+   vehicle_model VARCHAR(25) NOT NULL,
+   vehicle_licenseplate VARCHAR(20),
+   vehicle_year INT,
+   vehicle_images JSON,
+   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+   FOREIGN KEY (customer_id) REFERENCES customers(customer_id) ON DELETE CASCADE
+);
+CREATE TABLE product_categories (
+   category_id INT AUTO_INCREMENT PRIMARY KEY,
+   category_name VARCHAR(100) NOT NULL UNIQUE,
+   category_description TEXT,
+   category_slug VARCHAR(100),
+   category_image VARCHAR(500)
+);
+CREATE TABLE product_subcategories (
+   subcategory_id INT AUTO_INCREMENT PRIMARY KEY,
+   category_id INT NOT NULL,
+   subcategory_name VARCHAR(100) NOT NULL,
+   subcategory_description TEXT,
+   FOREIGN KEY (category_id)
+       REFERENCES product_categories(category_id)
+       ON DELETE CASCADE,
+   UNIQUE (category_id, subcategory_name)
+);
+CREATE TABLE products (
+   product_id VARCHAR(20) PRIMARY KEY,
+   product_name VARCHAR(200) NOT NULL,
+   product_description TEXT,
+   product_mrp DECIMAL(10,2),
+   product_selling_price DECIMAL(10,2) NOT NULL,
+   category_id INT NOT NULL,
+   subcategory_id INT NOT NULL,
+   product_brand VARCHAR(100),
+   product_specifications JSON,
+   product_car_specific JSON,
+   product_stock INT DEFAULT 0,
+   product_images JSON,
+   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+   FOREIGN KEY (category_id)
+       REFERENCES product_categories(category_id)
+       ON DELETE RESTRICT,
+   FOREIGN KEY (subcategory_id)
+       REFERENCES product_subcategories(subcategory_id)
+       ON DELETE RESTRICT
+);
+CREATE TABLE services (
+   service_id VARCHAR(20) PRIMARY KEY,
+   service_title VARCHAR(200) NOT NULL,
+   service_description TEXT,
+   service_price DECIMAL(10,2),
+   service_selling_price DECIMAL(10,2) NOT NULL,
+   service_media JSON,
+   service_keywords JSON,
+   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+CREATE TABLE offers (
+   offer_id VARCHAR(20) PRIMARY KEY,
+   offer_title VARCHAR(200) NOT NULL,
+   offer_description TEXT,
+   offer_items JSON NOT NULL,
+   actual_price DECIMAL(10,2) NOT NULL,
+   offer_price DECIMAL(10,2) NOT NULL,
+   start_date DATETIME NOT NULL,
+   end_date DATETIME NOT NULL,
+   offer_images JSON,
+   offer_stock INT DEFAULT 0,
+   offer_status BOOLEAN DEFAULT TRUE,
+   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+CREATE TABLE orders (
+   order_id VARCHAR(20) PRIMARY KEY,
+   customer_id INT NOT NULL,
+   order_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+   order_status VARCHAR(30) NOT NULL DEFAULT 'Pending',
+   shipping_address JSON NOT NULL,
+   payment_mode VARCHAR(50) NOT NULL,
+   payment_type VARCHAR(50) NOT NULL,
+   payment_status VARCHAR(30) NOT NULL DEFAULT 'Pending',
+   order_items JSON NOT NULL,
+   subtotal DECIMAL(10,2) NOT NULL,
+   discount DECIMAL(10,2) DEFAULT 0.00,
+   shipping_charge DECIMAL(10,2) DEFAULT 0.00,
+   total_amount DECIMAL(10,2) NOT NULL,
+   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+       ON UPDATE CURRENT_TIMESTAMP,
+   FOREIGN KEY (customer_id)
+       REFERENCES customers(customer_id)
+       ON DELETE RESTRICT
+);
+CREATE TABLE order_items (
+    order_item_id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id VARCHAR(50) NOT NULL,
+    product_id VARCHAR(20) NOT NULL,
+    quantity INT NOT NULL DEFAULT 1,
+    unit_price DECIMAL(10,2) NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (order_id)
+        REFERENCES orders(order_id)
+        ON DELETE CASCADE,
+    FOREIGN KEY (product_id)
+        REFERENCES products(product_id)
+        ON DELETE RESTRICT
+);
+CREATE TABLE product_reviews (
+    review_id INT AUTO_INCREMENT PRIMARY KEY,
+    product_id VARCHAR(20) NOT NULL UNIQUE,
+    customer_id INT NOT NULL UNIQUE,
+    rating TINYINT NOT NULL,
+    review_title VARCHAR(150),
+    review_text TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (product_id)
+        REFERENCES products(product_id)
+        ON DELETE CASCADE,
+    FOREIGN KEY (customer_id)
+        REFERENCES customers(customer_id)
+        ON DELETE CASCADE,
+    CHECK (rating BETWEEN 1 AND 5)
+);
+ALTER TABLE customers
+    MODIFY COLUMN customer_fullname VARCHAR(100) NULL,
+    MODIFY COLUMN customer_passwordhash VARCHAR(255) NULL,
+    ADD COLUMN customer_phone_verified BOOLEAN NOT NULL DEFAULT FALSE;
+
+CREATE TABLE customer_otps (
+  otp_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  customer_phone VARCHAR(15) NOT NULL,
+  otp_purpose ENUM('signup','login') NOT NULL,
+  customer_fullname VARCHAR(100) NULL,
+  challenge_id CHAR(48) NOT NULL,
+  otp_hash CHAR(64) NOT NULL,
+  otp_expires_at DATETIME NOT NULL,
+  otp_attempts INT NOT NULL DEFAULT 0,
+  consumed BOOLEAN NOT NULL DEFAULT FALSE,
+  last_sent_at DATETIME NULL,
+  window_started_at DATETIME NOT NULL,
+  send_count INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_otp_phone_purpose (customer_phone, otp_purpose),
+  UNIQUE KEY uq_otp_challenge (challenge_id)
+);
+CREATE TABLE customer_id_sequence (
+    id INT PRIMARY KEY,
+    last_customer_id INT NOT NULL
+);

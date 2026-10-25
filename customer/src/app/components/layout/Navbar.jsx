@@ -1,4 +1,5 @@
 "use client";
+import { useAuth } from "@/app/context/AuthContext";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -26,6 +27,12 @@ const navLinks = [
 ];
 export default function Navbar() {
 
+    const {
+        customer,
+        isAuthenticated,
+        authLoading,
+        logout,
+    } = useAuth();
     const pathname = usePathname();
     const [menuOpen, setMenuOpen] = useState(false);
     const [searchOpen, setSearchOpen] = useState(false);
@@ -60,7 +67,7 @@ export default function Navbar() {
     }, []);
     const useSolidNavbar =
         pathname === "/products" ||
-        pathname.startsWith("/products/") || pathname.startsWith("/services/") || pathname === "/services" || pathname.startsWith("/category") || pathname.startsWith("/offers");
+        pathname.startsWith("/products/") || pathname.startsWith("/services/") || pathname === "/services" || pathname.startsWith("/category") || pathname.startsWith("/offers") || pathname.startsWith("/login") || pathname.startsWith("/account") || pathname.startsWith("/cart");
     return (
         <>
             <header
@@ -154,14 +161,21 @@ export default function Navbar() {
                             </button>
                         </div>
                         {/* Account */}
+
                         <Link
-                            href="/login"
-                            aria-label="Login or sign up"
-                            title="Login / Sign Up"
-                            className="flex h-10 w-10 items-center justify-center rounded-full text-[var(--brand-gold)] transition-colors hover:bg-white/5 hover:text-[var(--brand-gold-light)]"
+                            href={isAuthenticated ? "/account" : "/login"}
+                            aria-label={isAuthenticated ? "My Account" : "Login or Register"}
+                            className="flex items-center gap-2 transition-colors hover:text-[var(--brand-gold)]"
                         >
-                            <FiUser size={22} />
+                            {/* Reuse your existing account icon here */}
+
+                            {!authLoading && (
+                                <span className="text-sm font-medium">
+                                    {isAuthenticated ? <FiUser/> : "Login"}
+                                </span>
+                            )}
                         </Link>
+
                         {/* Cart */}
                         <Link
                             href="/cart"

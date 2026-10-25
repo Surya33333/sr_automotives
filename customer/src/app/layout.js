@@ -1,6 +1,8 @@
 import "./globals.css";
 import Navbar from "./components/layout/Navbar";
 import Footer from "./components/layout/Footer";
+import Providers from "./providers";
+
 export const metadata = {
   metadataBase: new URL("https://srautomotives.com"),
   title: {
@@ -26,9 +28,11 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
-        <Navbar />
-        {children}
-        <Footer />
+        <Providers>
+          <Navbar />
+          {children}
+          <Footer />
+        </Providers>
       </body>
     </html>
   );
