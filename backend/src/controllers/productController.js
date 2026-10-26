@@ -145,6 +145,7 @@ export const getFeaturedProducts = async (req, res) => {
                 p.product_selling_price,
                 p.product_images,
                 p.product_stock,
+                p.product_slug,
                 SUM(oi.quantity) AS total_sold,
                 COALESCE(ROUND(AVG(pr.rating), 1), 0)
                     AS average_rating,

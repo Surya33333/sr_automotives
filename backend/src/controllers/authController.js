@@ -1,39 +1,70 @@
 import crypto from 'node:crypto';
 import jwt from 'jsonwebtoken';
 import pool from '../config/db.js';
+
+
+const SESSION_COOKIE = "sr_session";
+
+const SESSION_MAX_AGE = 24 * 60 * 60 * 1000;
+
+function sessionCookieOptions() {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+  };
+}
+
+function setSessionCookie(res, token) {
+  res.cookie(SESSION_COOKIE, token, {
+    ...sessionCookieOptions(),
+    maxAge: SESSION_MAX_AGE,
+  });
+}
+
+export const logoutCustomer = (req, res) => {
+  res.clearCookie(SESSION_COOKIE, sessionCookieOptions());
+
+  return res.status(200).json({
+    success: true,
+    message: "Logged out successfully",
+  });
+};
+
 const OTP_TTL_MS = 5 * 60 * 1000;
 const RESEND_MS = 60 * 1000;
 const MAX_ATTEMPTS = 5;
 const MAX_SENDS_PER_HOUR = 5;
 const isDevOtp = process.env.NODE_ENV !== 'production' && process.env.OTP_MODE === 'development';
 function phoneOf(value) {
-    if (typeof value !== 'string') return null;
-    const phone = value.replace(/[\s()-]/g, '').replace(/^\+91/, '');
-    return /^[6-9]\d{9}$/.test(phone) ? phone : null;
+  if (typeof value !== 'string') return null;
+  const phone = value.replace(/[\s()-]/g, '').replace(/^\+91/, '');
+  return /^[6-9]\d{9}$/.test(phone) ? phone : null;
 }
 function hashOtp(phone, purpose, challengeId, otp) {
-    if (!process.env.OTP_HASH_SECRET) throw new Error('OTP_HASH_SECRET is missing');
-    return crypto.createHmac('sha256', process.env.OTP_HASH_SECRET)
-        .update(`${phone}:${purpose}:${challengeId}:${otp}`).digest('hex');
+  if (!process.env.OTP_HASH_SECRET) throw new Error('OTP_HASH_SECRET is missing');
+  return crypto.createHmac('sha256', process.env.OTP_HASH_SECRET)
+    .update(`${phone}:${purpose}:${challengeId}:${otp}`).digest('hex');
 }
 function signCustomer(customer) {
-    if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET is missing');
-    return jwt.sign({ customer_id: customer.customer_id, customer_phone: customer.customer_phone },
-        process.env.JWT_SECRET, { expiresIn: '1d' });
+  if (!process.env.JWT_SECRET) throw new Error('JWT_SECRET is missing');
+  return jwt.sign({ customer_id: customer.customer_id, customer_phone: customer.customer_phone },
+    process.env.JWT_SECRET, { expiresIn: '1d' });
 }
 function safeCustomer(customer) {
-    return {
-        customer_id: customer.customer_id,
-        customer_fullname: customer.customer_fullname,
-        customer_phone: customer.customer_phone,
-        customer_phone_verified: Boolean(customer.customer_phone_verified),
-        customer_shippingaddress: customer.customer_shippingaddress,
-        customer_profileurl: customer.customer_profileurl
-    };
+  return {
+    customer_id: customer.customer_id,
+    customer_fullname: customer.customer_fullname,
+    customer_phone: customer.customer_phone,
+    customer_phone_verified: Boolean(customer.customer_phone_verified),
+    customer_shippingaddress: customer.customer_shippingaddress,
+    customer_profileurl: customer.customer_profileurl
+  };
 }
 function fail(res, status, message) { return res.status(status).json({ success: false, message }); }
 function validateName(name) {
-    return typeof name === 'string' && name.trim().length >= 2 && name.trim().length <= 100;
+  return typeof name === 'string' && name.trim().length >= 2 && name.trim().length <= 100;
 }
 export const sendOTP = async (req, res) => {
   const phone = phoneOf(req.body?.customer_phone);
@@ -335,16 +366,21 @@ export const verifyOTP = async (req, res) => {
          AND otp_id <> ?`,
       [phone, record.otp_id]
     );
+
     await conn.commit();
+
+    // Store the JWT in an HttpOnly cookie.
+    setSessionCookie(res, token);
+
     return res.status(200).json({
       success: true,
       message: isNewCustomer
         ? "Registration successful"
         : "Login successful",
       is_new_customer: isNewCustomer,
-      token,
-      customer: safeCustomer(customer)
+      customer: safeCustomer(customer),
     });
+
   } catch (error) {
     await conn.rollback();
     console.error("Verify OTP Error:", error);
@@ -356,42 +392,42 @@ export const verifyOTP = async (req, res) => {
 
 // Status and cancellation use the opaque challenge ID, not a public phone-number lookup.
 export const getOtpStatus = async (req, res) => {
-    const id = req.query?.challenge_id;
-    if (typeof id !== 'string' || !/^[a-f0-9]{48}$/.test(id)) return fail(res, 400, 'Valid challenge_id required');
-    const [[row]] = await pool.query('SELECT otp_expires_at, consumed, otp_attempts FROM customer_otps WHERE challenge_id=? LIMIT 1', [id]);
-    if (!row) return fail(res, 404, 'OTP request not found');
-    return res.json({
-        success: true, status: row.consumed ? 'used' : row.otp_attempts >= MAX_ATTEMPTS ? 'locked' :
-            new Date(row.otp_expires_at).getTime() <= Date.now() ? 'expired' : 'pending'
-    });
+  const id = req.query?.challenge_id;
+  if (typeof id !== 'string' || !/^[a-f0-9]{48}$/.test(id)) return fail(res, 400, 'Valid challenge_id required');
+  const [[row]] = await pool.query('SELECT otp_expires_at, consumed, otp_attempts FROM customer_otps WHERE challenge_id=? LIMIT 1', [id]);
+  if (!row) return fail(res, 404, 'OTP request not found');
+  return res.json({
+    success: true, status: row.consumed ? 'used' : row.otp_attempts >= MAX_ATTEMPTS ? 'locked' :
+      new Date(row.otp_expires_at).getTime() <= Date.now() ? 'expired' : 'pending'
+  });
 };
 export const cancelOtp = async (req, res) => {
-    const id = req.body?.challenge_id;
-    if (typeof id !== 'string' || !/^[a-f0-9]{48}$/.test(id)) return fail(res, 400, 'Valid challenge_id required');
-    await pool.query('UPDATE customer_otps SET consumed=1, otp_hash=\'\' WHERE challenge_id=?', [id]);
-    return res.json({ success: true, message: 'OTP request cancelled if it existed' });
+  const id = req.body?.challenge_id;
+  if (typeof id !== 'string' || !/^[a-f0-9]{48}$/.test(id)) return fail(res, 400, 'Valid challenge_id required');
+  await pool.query('UPDATE customer_otps SET consumed=1, otp_hash=\'\' WHERE challenge_id=?', [id]);
+  return res.json({ success: true, message: 'OTP request cancelled if it existed' });
 };
 export const getCustomerProfile = async (req, res) => {
-    try {
-        const [[customer]] = await pool.query(`SELECT customer_id, customer_fullname, customer_phone,
+  try {
+    const [[customer]] = await pool.query(`SELECT customer_id, customer_fullname, customer_phone,
       customer_phone_verified, customer_shippingaddress, customer_profileurl, customer_createdat
       FROM customers WHERE customer_id=?`, [req.customer.customer_id]);
-        if (!customer) return fail(res, 404, 'Customer not found');
-        return res.json({ success: true, customer });
-    } catch (error) { console.error('Get profile:', error); return fail(res, 500, 'Failed to fetch profile'); }
+    if (!customer) return fail(res, 404, 'Customer not found');
+    return res.json({ success: true, customer });
+  } catch (error) { console.error('Get profile:', error); return fail(res, 500, 'Failed to fetch profile'); }
 };
 export const updateCustomerProfile = async (req, res) => {
-    try {
-        const { customer_fullname, customer_shippingaddress, customer_profileurl } = req.body || {};
-        if (!validateName(customer_fullname)) return fail(res, 400, 'Full name must be 2–100 characters');
-        if (customer_shippingaddress != null && (typeof customer_shippingaddress !== 'object' || Array.isArray(customer_shippingaddress))) {
-            return fail(res, 400, 'Shipping address must be a JSON object');
-        }
-        // Phone cannot be changed without verifying the NEW phone number.
-        if (req.body?.customer_phone !== undefined) return fail(res, 400, 'Phone changes require separate OTP verification');
-        await pool.query(`UPDATE customers SET customer_fullname=?, customer_shippingaddress=?, customer_profileurl=?
+  try {
+    const { customer_fullname, customer_shippingaddress, customer_profileurl } = req.body || {};
+    if (!validateName(customer_fullname)) return fail(res, 400, 'Full name must be 2–100 characters');
+    if (customer_shippingaddress != null && (typeof customer_shippingaddress !== 'object' || Array.isArray(customer_shippingaddress))) {
+      return fail(res, 400, 'Shipping address must be a JSON object');
+    }
+    // Phone cannot be changed without verifying the NEW phone number.
+    if (req.body?.customer_phone !== undefined) return fail(res, 400, 'Phone changes require separate OTP verification');
+    await pool.query(`UPDATE customers SET customer_fullname=?, customer_shippingaddress=?, customer_profileurl=?
       WHERE customer_id=?`, [customer_fullname.trim(), customer_shippingaddress == null ? null : JSON.stringify(customer_shippingaddress),
-        typeof customer_profileurl === 'string' ? customer_profileurl : null, req.customer.customer_id]);
-        return getCustomerProfile(req, res);
-    } catch (error) { console.error('Update profile:', error); return fail(res, 500, 'Failed to update profile'); }
+    typeof customer_profileurl === 'string' ? customer_profileurl : null, req.customer.customer_id]);
+    return getCustomerProfile(req, res);
+  } catch (error) { console.error('Update profile:', error); return fail(res, 500, 'Failed to update profile'); }
 };

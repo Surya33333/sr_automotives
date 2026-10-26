@@ -1,9 +1,9 @@
-
 "use client";
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "../context/AuthContext";
+
 export default function AccountPage() {
   const router = useRouter();
 
@@ -16,17 +16,15 @@ export default function AccountPage() {
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      router.replace("/login");
+      router.replace("/login?redirect=/account");
     }
   }, [authLoading, isAuthenticated, router]);
 
   if (authLoading) {
     return (
-      <main className="flex min-h-[60svh] items-center justify-center bg-[var(--brand-cream)]">
-        <p className="text-sm text-[var(--text-secondary)]">
-          Checking your session...
-        </p>
-      </main>
+      <div className="flex min-h-[60svh] items-center justify-center">
+        Checking your session...
+      </div>
     );
   }
 
@@ -35,9 +33,9 @@ export default function AccountPage() {
   }
 
   return (
-    <main className="min-h-[calc(100svh-10px)] mt-10px bg-[var(--brand-cream)] px-4 py-10">
+    <main className="min-h-screen bg-[var(--brand-cream)] px-4 py-10">
       <div className="section-container mx-auto">
-        <h1 className="text-3xl font-bold text-[var(--text-primary)]">
+        <h1 className="text-3xl font-bold">
           My Account
         </h1>
 
@@ -56,11 +54,15 @@ export default function AccountPage() {
 
           <button
             type="button"
-            onClick={() => {
-              logout();
-              router.replace("/login");
+            onClick={async () => {
+              try {
+                await logout();
+                router.replace("/login");
+              } catch (error) {
+                console.error("Logout failed:", error);
+              }
             }}
-            className="mt-6 rounded-md bg-[var(--brand-black)] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[var(--brand-charcoal)]"
+            className="mt-6 rounded-lg bg-[var(--brand-black)] px-6 py-3 text-white"
           >
             Logout
           </button>

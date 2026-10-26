@@ -1,11 +1,11 @@
 "use client";
-import { useAuth } from "@/app/context/AuthContext";
+import { useAuth } from "../../../app/context/AuthContext";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useCart } from "../../context/CartContext";
 import {
-    FiSearch,
     FiUser,
     FiShoppingCart,
     FiMenu,
@@ -25,8 +25,9 @@ const navLinks = [
     { name: "Offers", href: "/offers", icon: FiTag },
     { name: "Contact", href: "/contact", icon: FiMail },
 ];
-export default function Navbar() {
 
+export default function Navbar() {
+    const { count } = useCart();
     const {
         customer,
         isAuthenticated,
@@ -35,13 +36,6 @@ export default function Navbar() {
     } = useAuth();
     const pathname = usePathname();
     const [menuOpen, setMenuOpen] = useState(false);
-    const [searchOpen, setSearchOpen] = useState(false);
-    // Temporary until CartContext/AuthContext are connected
-    const cartCount = 3;
-    useEffect(() => {
-        setMenuOpen(false);
-        setSearchOpen(false);
-    }, [pathname]);
     useEffect(() => {
         document.body.style.overflow = menuOpen ? "hidden" : "";
         return () => {
@@ -53,16 +47,12 @@ export default function Navbar() {
         return pathname.startsWith(href);
     };
     const [scrolled, setScrolled] = useState(false);
-
     useEffect(() => {
         const handleScroll = () => {
             setScrolled(window.scrollY > 10);
         };
-
         handleScroll();
-
         window.addEventListener("scroll", handleScroll, { passive: true });
-
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
     const useSolidNavbar =
@@ -136,79 +126,41 @@ export default function Navbar() {
                     </div>
                     {/* Desktop Actions */}
                     <div className="hidden items-center gap-3 lg:flex">
-                        {/* Search */}
-                        <div
-                            className={`
-                flex h-10 items-center overflow-hidden rounded-full
-                border border-white/5 bg-[var(--brand-charcoal)]
-                transition-all duration-300
-                ${searchOpen ? "w-64" : "w-44 xl:w-56"}
-              `}
-                        >
-                            <input
-                                type="search"
-                                placeholder="Search products..."
-                                aria-label="Search products"
-                                className="h-full min-w-0 flex-1 bg-transparent px-4 text-sm text-white outline-none placeholder:text-white/40"
-                            />
-                            <button
-                                type="button"
-                                aria-label="Search"
-                                onClick={() => setSearchOpen(true)}
-                                className="flex h-10 w-11 shrink-0 items-center justify-center text-[var(--brand-gold)] transition-colors hover:text-[var(--brand-gold-light)]"
-                            >
-                                <FiSearch size={18} />
-                            </button>
-                        </div>
                         {/* Account */}
-
                         <Link
                             href={isAuthenticated ? "/account" : "/login"}
                             aria-label={isAuthenticated ? "My Account" : "Login or Register"}
-                            className="flex items-center gap-2 transition-colors hover:text-[var(--brand-gold)]"
+                            className="flex items-center gap-2 transition-colors text-white hover:text-[var(--brand-gold)]"
                         >
                             {/* Reuse your existing account icon here */}
-
                             {!authLoading && (
                                 <span className="text-sm font-medium">
-                                    {isAuthenticated ? <FiUser/> : "Login"}
+                                    {isAuthenticated ? <FiUser size={23} /> : "Login"}
                                 </span>
                             )}
                         </Link>
-
                         {/* Cart */}
                         <Link
                             href="/cart"
-                            aria-label={`Shopping cart with ${cartCount} items`}
+                            aria-label={`Shopping cart with ${count} items`}
                             className="relative flex h-10 w-10 items-center justify-center rounded-full text-[var(--brand-gold)] transition-colors hover:bg-white/5 hover:text-[var(--brand-gold-light)]"
                         >
                             <FiShoppingCart size={23} />
-                            {cartCount > 0 && (
+                            {count > 0 && (
                                 <span className="absolute right-0 top-0 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[var(--brand-gold)] px-1 text-[10px] font-bold text-[var(--brand-black)]">
-                                    {cartCount > 99 ? "99+" : cartCount}
+                                    {count > 99 ? "99+" : count}
                                 </span>
                             )}
                         </Link>
                     </div>
                     {/* Mobile Actions */}
                     <div className="flex items-center gap-1 lg:hidden">
-                        <button
-                            type="button"
-                            aria-label="Search products"
-                            onClick={() => setSearchOpen((prev) => !prev)}
-                            className="flex h-11 w-11 items-center justify-center text-[var(--brand-gold)]"
-                        >
-                            <FiSearch size={21} />
-                        </button>
-                        <Link
-                            href="/cart"
-                            aria-label={`Shopping cart with ${cartCount} items`}
-                            className="relative flex h-11 w-11 items-center justify-center text-[var(--brand-gold)]"
-                        >
-                            <FiShoppingCart size={22} />
-                            {cartCount > 0 && (
-                                <span className="absolute right-0.5 top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-[var(--brand-gold)] px-1 text-[10px] font-bold text-[var(--brand-black)]">
-                                    {cartCount > 99 ? "99+" : cartCount}
+                        <Link href="/cart" className="relative" aria-label="Shopping cart">
+                            <FiShoppingCart size={24} />
+
+                            {count > 0 && (
+                                <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--brand-gold)] px-1 text-[10px] font-bold text-[var(--brand-black)]">
+                                    {count > 99 ? "99+" : count}
                                 </span>
                             )}
                         </Link>
@@ -223,36 +175,6 @@ export default function Navbar() {
                         </button>
                     </div>
                 </nav>
-                {/* Mobile Search */}
-                <div
-                    className={`
-            overflow-hidden border-white/10 bg-[var(--brand-black)]
-            transition-all duration-300 lg:hidden
-            ${searchOpen
-                            ? "max-h-20 border-t opacity-100"
-                            : "max-h-0 opacity-0"
-                        }
-          `}
-                >
-                    <form
-                        role="search"
-                        className="section-container flex py-3"
-                    >
-                        <div className="flex h-11 w-full items-center rounded-lg border border-white/10 bg-[var(--brand-charcoal)]">
-                            <FiSearch
-                                className="ml-4 shrink-0 text-[var(--brand-gold)]"
-                                size={18}
-                            />
-                            <input
-                                type="search"
-                                placeholder="Search products..."
-                                aria-label="Search products"
-                                autoFocus={searchOpen}
-                                className="h-full w-full bg-transparent px-3 text-sm text-white outline-none placeholder:text-white/40"
-                            />
-                        </div>
-                    </form>
-                </div>
             </header>
             {/* Mobile Dark Overlay */}
             <div
@@ -359,19 +281,12 @@ export default function Navbar() {
                         Login / Sign Up
                     </Link>
                     {/* Cart - same style as normal menu */}
-                    <Link
-                        href="/cart"
-                        onClick={() => setMenuOpen(false)}
-                        className="flex min-h-12 items-center gap-4 rounded-lg border-l-2 border-transparent px-4 py-3 text-[15px] font-medium text-white/85 transition-colors hover:bg-white/5 hover:text-[var(--brand-gold)]"
-                    >
-                        <FiShoppingCart
-                            size={19}
-                            className="text-[var(--brand-gold)]"
-                        />
-                        <span className="flex-1">Cart</span>
-                        {cartCount > 0 && (
-                            <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-[var(--brand-gold)] px-1.5 text-xs font-bold text-[var(--brand-black)]">
-                                {cartCount > 99 ? "99+" : cartCount}
+                    <Link href="/cart" className="relative" aria-label="Shopping cart">
+                        <FiShoppingCart size={24} />
+
+                        {count > 0 && (
+                            <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--brand-gold)] px-1 text-[10px] font-bold text-[var(--brand-black)]">
+                                {count > 99 ? "99+" : count}
                             </span>
                         )}
                     </Link>

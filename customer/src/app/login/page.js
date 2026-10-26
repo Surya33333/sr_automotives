@@ -148,7 +148,10 @@ function AuthPageContent() {
         try {
             const response = await fetch(`${API_URL}/verify-otp`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                headers: {
+                    "Content-Type": "application/json",
+                },
                 body: JSON.stringify({
                     customer_phone: mobile,
                     challenge_id: challengeId,
@@ -160,10 +163,7 @@ function AuthPageContent() {
                 throw new Error(data.message || "OTP verification failed.");
             }
             // Temporary storage until AuthContext is implemented.
-            login({
-                token: data.token,
-                customer: data.customer,
-            });
+            login(data.customer);
 
             setCustomer(data.customer);
             setStep("success");

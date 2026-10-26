@@ -1,48 +1,91 @@
+
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import pool from "./config/db.js";
 
 import authRoutes from "./routes/authRoutes.js";
 
 const app = express();
 
-// Middleware
-app.use(cors());
-app.use(express.json());
-app.use("/api", authRoutes);
+const allowedOrigins = (
+  process.env.FRONTEND_ORIGINS ||
+  "http://localhost:3000"
+)
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
-// Test API
-app.get("/", (req, res) => {
-    res.json({
-        success: true,
-        message: "SR Automotives API is running"
+app.use(
+  cors({
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Origin not allowed by CORS"));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
+app.use(express.json());
+app.use(cookieParser());
+
+// Require trusted Origin on browser-style state-changing requests.
+// This is one layer of CSRF protection for cookie authentication.
+app.use((req, res, next) => {
+  if (["GET", "HEAD", "OPTIONS"].includes(req.method)) {
+    return next();
+  }
+
+  const origin = req.headers.origin;
+
+  if (origin && !allowedOrigins.includes(origin)) {
+    return res.status(403).json({
+      success: false,
+      message: "Request origin not allowed",
     });
+  }
+
+  next();
 });
 
-// Test MySQL connection
+app.use("/api", authRoutes);
+
+app.get("/", (req, res) => {
+  res.json({
+    success: true,
+    message: "SR Automotives API is running",
+  });
+});
+
 app.get("/api/test-db", async (req, res) => {
-    try {
-        const [rows] = await pool.query("SELECT 1 AS result");
+  try {
+    const [rows] = await pool.query("SELECT 1 AS result");
 
-        res.json({
-            success: true,
-            message: "Database connected successfully",
-            database: rows
-        });
+    res.json({
+      success: true,
+      message: "Database connected successfully",
+      database: rows,
+    });
+  } catch (error) {
+    console.error("Database Error:", error);
 
-    } catch (error) {
-        console.error("Database Error:", error);
-
-        res.status(500).json({
-            success: false,
-            message: "Database connection failed"
-        });
-    }
+    res.status(500).json({
+      success: false,
+      message: "Database connection failed",
+    });
+  }
 });
 
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-    console.log(`🚗 SR Automotives API running on http://localhost:${PORT}`);
+  console.log(
+    `SR Automotives API running on http://localhost:${PORT}`
+  );
 });

@@ -4,6 +4,7 @@ import Link from "next/link";
 import {
     FiStar,
 } from "react-icons/fi";
+import { useCart } from "../../context/CartContext";
 export default function ProductCard({
     product,
 }) {
@@ -31,8 +32,8 @@ export default function ProductCard({
         mrp > sellingPrice;
     const discountPercentage = isOnSale
         ? Math.round(
-              ((mrp - sellingPrice) / mrp) * 100
-          )
+            ((mrp - sellingPrice) / mrp) * 100
+        )
         : 0;
     /* =============================================
        PRODUCT IMAGE
@@ -76,7 +77,7 @@ export default function ProductCard({
                     size={12}
                     className={
                         star <=
-                        Math.round(rating)
+                            Math.round(rating)
                             ? `
                                 fill-[var(--brand-gold)]
                                 text-[var(--brand-gold)]
@@ -89,7 +90,7 @@ export default function ProductCard({
             )
         );
     };
-    console.log(productSlug)
+    console.log(productSlug);
     return (
         <Link
             href={`/products/${productSlug}`}
@@ -147,7 +148,7 @@ export default function ProductCard({
                                             (max-width: 1279px) 25vw,
                                             20vw
                                         "
-                                        className="
+                        className="
                                             object-cover
                                             transition-transform
                                             duration-500

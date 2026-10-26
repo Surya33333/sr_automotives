@@ -7,12 +7,15 @@ import { getOffers } from "../controllers/offerController.js";
 import { addToCart, getCart, updateCartQuantity, removeCartItem, clearCart, mergeCart, getCheckoutSummary } from "../controllers/cartController.js";
 import { createOrder, getCustomerOrders, getOrderById } from "../controllers/orderController.js";
 import authMiddleware from "../middleware/authMiddleware.js";
+import { logoutCustomer } from "../controllers/authController.js";
+
 const router = express.Router();
 
 // OTP Authentication
 router.post("/send-otp", sendOTP);
 router.post("/verify-otp", verifyOTP);
- 
+router.post("/logout", authMiddleware, logoutCustomer);
+
 // OTP Management
 router.get("/otp/status", getOtpStatus);
 router.delete("/otp", cancelOtp);
