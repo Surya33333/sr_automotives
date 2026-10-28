@@ -164,3 +164,20 @@ CREATE TABLE customer_id_sequence (
     id INT PRIMARY KEY,
     last_customer_id INT NOT NULL
 );
+CREATE TABLE order_payments (
+    payment_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    order_id VARCHAR(20) NOT NULL,
+    gateway VARCHAR(30) NOT NULL DEFAULT 'razorpay',
+    gateway_order_id VARCHAR(100) UNIQUE,
+    gateway_payment_id VARCHAR(100) UNIQUE,
+    amount DECIMAL(10,2) NOT NULL,
+    currency VARCHAR(3) NOT NULL DEFAULT 'INR',
+    payment_method VARCHAR(50),
+    payment_status VARCHAR(30) NOT NULL DEFAULT 'Created',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (order_id)
+        REFERENCES orders(order_id)
+        ON DELETE RESTRICT
+);

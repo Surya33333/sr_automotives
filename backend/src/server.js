@@ -6,6 +6,8 @@ import cookieParser from "cookie-parser";
 import pool from "./config/db.js";
 
 import authRoutes from "./routes/authRoutes.js";
+import paymentRoutes from "./routes/paymentRoutes.js";
+import razorpayWebhookRoutes from "./routes/paymentWebhookRoutes.js";
 
 const app = express();
 
@@ -32,6 +34,13 @@ app.use(
   })
 );
 
+// Razorpay webhook must receive the raw request body.
+app.use(
+  "/api/payments/webhook",
+  express.raw({ type: "application/json" }),
+  razorpayWebhookRoutes
+)
+
 app.use(express.json());
 app.use(cookieParser());
 
@@ -55,6 +64,7 @@ app.use((req, res, next) => {
 });
 
 app.use("/api", authRoutes);
+app.use("/api/payments", paymentRoutes);
 
 app.get("/", (req, res) => {
   res.json({

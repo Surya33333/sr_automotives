@@ -57,7 +57,7 @@ export default function Navbar() {
     }, []);
     const useSolidNavbar =
         pathname === "/products" ||
-        pathname.startsWith("/products/") || pathname.startsWith("/services/") || pathname === "/services" || pathname.startsWith("/category") || pathname.startsWith("/offers") || pathname.startsWith("/login") || pathname.startsWith("/account") || pathname.startsWith("/cart");
+        pathname.startsWith("/products/") || pathname.startsWith("/services/") || pathname === "/services" || pathname.startsWith("/category") || pathname.startsWith("/offers") || pathname.startsWith("/login") || pathname.startsWith("/account") || pathname.startsWith("/cart") || pathname.startsWith("/checkout");
     return (
         <>
             <header
@@ -156,7 +156,7 @@ export default function Navbar() {
                     {/* Mobile Actions */}
                     <div className="flex items-center gap-1 lg:hidden">
                         <Link href="/cart" className="relative" aria-label="Shopping cart">
-                            <FiShoppingCart size={24} />
+                            <FiShoppingCart size={24} color="var(--brand-white)"/>
 
                             {count > 0 && (
                                 <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--brand-gold)] px-1 text-[10px] font-bold text-[var(--brand-black)]">
@@ -281,14 +281,18 @@ export default function Navbar() {
                         Login / Sign Up
                     </Link>
                     {/* Cart - same style as normal menu */}
-                    <Link href="/cart" className="relative" aria-label="Shopping cart">
-                        <FiShoppingCart size={24} />
-
+                    <Link 
+                        href="/cart" 
+                        className="relative flex min-h-12 items-center gap-4 rounded-lg border-l-2 border-transparent px-4 py-3 text-[15px] font-medium text-white/85 transition-colors hover:bg-white/5 hover:text-[var(--brand-gold)]"
+                        aria-label="Shopping cart"
+                    >
+                        <FiShoppingCart size={19} color={"var(--brand-gold)"}/>
                         {count > 0 && (
-                            <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-[var(--brand-gold)] px-1 text-[10px] font-bold text-[var(--brand-black)]">
+                            <span className="absolute left-6 bottom-6 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--brand-gold)] text-[9px] font-bold text-[var(--brand-black)]">
                                 {count > 99 ? "99+" : count}
                             </span>
                         )}
+                        Cart
                     </Link>
                 </div>
                 <div className="border-t border-white/10 px-5 py-4">

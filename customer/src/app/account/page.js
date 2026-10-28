@@ -33,7 +33,17 @@ export default function AccountPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[var(--brand-cream)] px-4 py-10">
+    <main
+  className="
+    min-h-[100svh]
+    bg-[var(--brand-cream)]
+    pt-[calc(64px+24px)]
+    pb-12
+    text-[var(--text-primary)]
+    sm:pt-[calc(64px+32px)]
+    sm:pb-16
+  "
+>
       <div className="section-container mx-auto">
         <h1 className="text-3xl font-bold">
           My Account

@@ -1,6 +1,55 @@
 
 export const GUEST_CART_KEY = "sr_guest_cart";
 
+export function getCartItemId(item) {
+  return (
+    item.item_id ??
+    item.product_id ??
+    item.service_id ??
+    item.offer_id ??
+    null
+  );
+}
+
+
+export function normalizeGuestEntry(item) {
+  if (!item || typeof item !== "object") return null;
+
+  let type = item.item_type;
+
+  // Support older guest cart entries
+  if (!type) {
+    if (item.product_id != null) {
+      type = "product";
+    } else if (item.service_id != null) {
+      type = "service";
+    } else if (item.offer_id != null) {
+      type = "offer";
+    }
+  }
+
+  const id =
+    item.item_id ??
+    item.product_id ??
+    item.service_id ??
+    item.offer_id;
+
+  if (
+    !["product", "service", "offer"].includes(type) ||
+    id == null
+  ) {
+    return null;
+  }
+
+  return {
+    ...item,
+    item_type: type,
+    item_id: String(id),
+    quantity: Math.max(1, Number(item.quantity) || 1),
+  };
+}
+
+
 export function readGuestCart() {
   if (typeof window === "undefined") return [];
 
@@ -9,46 +58,70 @@ export function readGuestCart() {
       localStorage.getItem(GUEST_CART_KEY) || "[]"
     );
 
-    return Array.isArray(saved) ? saved : [];
+    if (!Array.isArray(saved)) return [];
+
+    return saved.map(normalizeGuestEntry).filter(Boolean);
   } catch {
     return [];
   }
 }
 
-export function writeGuestCart(items) {
-  localStorage.setItem(GUEST_CART_KEY, JSON.stringify(items));
-  window.dispatchEvent(new Event("sr-cart-changed"));
+export function writeGuestCart(items, notify = true) {
+  if (typeof window === "undefined") return;
+
+  const normalized = items
+    .map(normalizeGuestEntry)
+    .filter(Boolean);
+
+  localStorage.setItem(
+    GUEST_CART_KEY,
+    JSON.stringify(normalized)
+  );
+
+  if (notify) {
+    window.dispatchEvent(new Event("sr-cart-changed"));
+  }
 }
 
 export function clearGuestCart() {
+  if (typeof window === "undefined") return;
+
   localStorage.removeItem(GUEST_CART_KEY);
   window.dispatchEvent(new Event("sr-cart-changed"));
 }
 
 export function cartItemKey(item) {
-  return [
+  return JSON.stringify([
     item.item_type,
-    item.item_id,
-    JSON.stringify(item.selected_offer_items ?? null),
-  ].join(":");
+    String(getCartItemId(item)),
+    item.selected_offer_items ?? null,
+  ]);
 }
 
 export function addGuestCartItem(item) {
-  const items = readGuestCart();
-  const key = cartItemKey(item);
-  const existing = items.find((entry) => cartItemKey(entry) === key);
+  const normalized = normalizeGuestEntry(item);
 
-  if (existing) {
-    existing.quantity += item.quantity || 1;
+  if (!normalized) {
+    throw new Error("Invalid guest cart item");
+  }
+
+  const items = readGuestCart();
+  const key = cartItemKey(normalized);
+
+  const index = items.findIndex(
+    (entry) => cartItemKey(entry) === key
+  );
+
+  if (index >= 0) {
+    items[index] = {
+      ...items[index],
+      ...normalized,
+      quantity:
+        Number(items[index].quantity) +
+        Number(normalized.quantity),
+    };
   } else {
-    items.push({
-      item_type: item.item_type,
-      item_id: item.item_id,
-      quantity: item.quantity || 1,
-      ...(item.selected_offer_items != null
-        ? { selected_offer_items: item.selected_offer_items }
-        : {}),
-    });
+    items.push(normalized);
   }
 
   writeGuestCart(items);

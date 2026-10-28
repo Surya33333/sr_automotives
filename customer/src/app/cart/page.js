@@ -44,7 +44,17 @@ export default function CartPage() {
   };
 
   return (
-    <main className="min-h-[100svh] bg-[var(--brand-cream)] pb-16 pt-8 text-[var(--text-primary)] sm:pt-12">
+    <main
+      className="
+    min-h-[100svh]
+    bg-[var(--brand-cream)]
+    pt-[calc(64px+24px)]
+    pb-12
+    text-[var(--text-primary)]
+    sm:pt-[calc(64px+32px)]
+    sm:pb-16
+  "
+    >
       <div className="section-container mx-auto px-4 sm:px-6">
         <nav className="mb-7 flex flex-wrap items-center gap-2 text-xs text-[var(--text-secondary)]">
           <Link href="/" className="hover:text-[var(--brand-gold)]">

@@ -19,6 +19,7 @@ import {
   clearGuestCart,
   readGuestCart,
   writeGuestCart,
+  getCartItemId
 } from "../lib/guestCart";
 
 const CartContext = createContext(null);
@@ -32,20 +33,31 @@ function parseJson(value) {
   }
 }
 
+
 function firstImage(value) {
   const parsed = parseJson(value);
 
+  if (!parsed) return "";
+
   if (Array.isArray(parsed)) {
-    const first = parsed[0];
-    return typeof first === "string" ? first : first?.url || "";
+    return firstImage(parsed[0]);
   }
 
-  if (parsed && typeof parsed === "object") {
-    return firstImage(parsed.images || parsed.url || "");
+  if (typeof parsed === "object") {
+    return firstImage(
+      parsed.url ??
+      parsed.src ??
+      parsed.image_url ??
+      parsed.image ??
+      parsed.images ??
+      parsed.media ??
+      ""
+    );
   }
 
   return typeof parsed === "string" ? parsed : "";
 }
+
 
 function normalizeServerItem(item) {
   return {
@@ -56,47 +68,88 @@ function normalizeServerItem(item) {
   };
 }
 
+
 function normalizeGuestItem(item, catalog) {
   const type = item.item_type;
-  const id = item.item_id;
+  const id = getCartItemId(item);
 
-  const record = (catalog[type] || []).find((entry) => {
-    const recordId =
-      type === "product"
-        ? entry.product_id
-        : type === "service"
-          ? entry.service_id
-          : entry.offer_id;
+  const records = catalog[type];
 
-    return String(recordId) === String(id);
-  });
+  const record = Array.isArray(records)
+    ? records.find((entry) => {
+      const recordId =
+        type === "product"
+          ? entry.product_id
+          : type === "service"
+            ? entry.service_id
+            : entry.offer_id;
 
-  return {
-    ...item,
-    quantity: Number(item.quantity) || 1,
-    name:
-      record?.product_name ||
-      record?.service_title ||
-      record?.offer_title ||
-      `${type} ${id}`,
-    unit_price: Number(
-      record?.product_selling_price ??
-      record?.service_selling_price ??
-      record?.offer_price ??
-      0
-    ),
-    image: firstImage(
+      return String(recordId) === String(id);
+    })
+    : null;
+
+  const name =
+    record?.product_name ??
+    record?.service_title ??
+    record?.offer_title ??
+    item.name ??
+    `${type} ${id}`;
+
+  const image =
+    firstImage(
       record?.product_images ??
       record?.service_media ??
       record?.offer_images
-    ),
-    stock:
-      type === "product"
-        ? record?.product_stock
-        : type === "offer"
-          ? record?.offer_stock
-          : undefined,
-    unavailable: !record,
+    ) ||
+    firstImage(item.image ?? item.images ?? item.media);
+
+  const unitPrice = Number(
+    record?.product_selling_price ??
+    record?.service_selling_price ??
+    record?.offer_price ??
+    item.unit_price ??
+    0
+  );
+
+  const mrp = Number(
+    record?.product_mrp ??
+    record?.service_mrp ??
+    record?.actual_price ??
+    item.mrp ??
+    unitPrice
+  );
+
+  const stock =
+    type === "product"
+      ? record?.product_stock ?? item.stock ?? null
+      : type === "offer"
+        ? record?.offer_stock ?? item.stock ?? null
+        : null;
+
+  return {
+    ...item,
+    item_type: type,
+    item_id: String(id),
+    name,
+    image,
+    unit_price: unitPrice,
+    mrp,
+    quantity: Number(item.quantity) || 1,
+    stock,
+    brand:
+      record?.product_brand ??
+      item.brand ??
+      "SR Automotives",
+    description:
+      record?.product_description ??
+      record?.service_description ??
+      record?.offer_description ??
+      item.description ??
+      "",
+    unavailable:
+      Array.isArray(records)
+        ? !record
+        : Boolean(item.unavailable),
   };
 }
 
@@ -112,21 +165,29 @@ export function CartProvider({ children }) {
   const operationLock = useRef(false);
   const customerId = customer?.customer_id ?? null;
 
+
   const loadGuestCart = useCallback(async (version) => {
     const saved = readGuestCart();
 
     if (!saved.length) {
-      if (version === generation.current) setItems([]);
+      if (version === generation.current) {
+        setItems([]);
+      }
       return;
     }
 
     const catalog = await loadCartCatalog();
+
     if (version !== generation.current) return;
 
-    setItems(
-      saved.map((item) => normalizeGuestItem(item, catalog))
+    const enrichedItems = saved.map((item) =>
+      normalizeGuestItem(item, catalog)
     );
+
+    writeGuestCart(enrichedItems, false);
+    setItems(enrichedItems);
   }, []);
+
 
   const refreshCart = useCallback(async () => {
     if (authLoading) return;
@@ -141,16 +202,24 @@ export function CartProvider({ children }) {
 
         if (guestItems.length) {
           // Merge before loading the authenticated cart.
-          await cartApi.merge(
-            guestItems.map((item) => ({
-              item_type: item.item_type,
-              item_id: item.item_id,
-              quantity: Number(item.quantity) || 1,
-              ...(item.selected_offer_items != null
-                ? { selected_offer_items: item.selected_offer_items }
-                : {}),
-            }))
-          );
+
+          const mergeItems = guestItems.map((item) => ({
+            item_type: item.item_type,
+            item_id: getCartItemId(item),
+            quantity: Number(item.quantity) || 1,
+            ...(item.selected_offer_items != null
+              ? { selected_offer_items: item.selected_offer_items }
+              : {}),
+          }));
+
+          if (mergeItems.some((item) => !item.item_id)) {
+            throw new Error(
+              "Some guest cart items have invalid IDs. Cart was not merged."
+            );
+          }
+
+          await cartApi.merge(mergeItems);
+
 
           if (version !== generation.current) return;
 
@@ -228,7 +297,11 @@ export function CartProvider({ children }) {
       if (isAuthenticated) {
         await cartApi.add(item);
       } else {
-        addGuestCartItem(item);
+        // Avoid a second refresh from the cart-change event.
+        const normalized = addGuestCartItem(item);
+
+        // Update immediately using the available guest-cart data.
+        setItems(normalized);
       }
     });
   }, [authLoading, isAuthenticated, runMutation]);

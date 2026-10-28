@@ -431,3 +431,79 @@ export const updateCustomerProfile = async (req, res) => {
     return getCustomerProfile(req, res);
   } catch (error) { console.error('Update profile:', error); return fail(res, 500, 'Failed to update profile'); }
 };
+export const updateCheckoutAddress = async (req, res) => {
+  try {
+    const customerId = req.customer.customer_id;
+    const address = req.body?.shipping_address;
+
+    if (!address || typeof address !== "object" || Array.isArray(address)) {
+      return res.status(400).json({
+        success: false,
+        message: "A valid shipping address is required",
+      });
+    }
+
+    const requiredFields = [
+      "full_name",
+      "phone",
+      "address_line1",
+      "city",
+      "state",
+      "pincode",
+      "country",
+    ];
+
+    for (const field of requiredFields) {
+      if (
+        typeof address[field] !== "string" ||
+        !address[field].trim()
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: `${field} is required`,
+        });
+      }
+    }
+
+    if (!/^[0-9]{6}$/.test(address.pincode.trim())) {
+      return res.status(400).json({
+        success: false,
+        message: "Enter a valid 6-digit pincode",
+      });
+    }
+
+    const cleanAddress = Object.fromEntries(
+      Object.entries(address).map(([key, value]) => [
+        key,
+        typeof value === "string" ? value.trim() : value,
+      ])
+    );
+
+    const [result] = await pool.query(
+      `UPDATE customers
+       SET customer_shippingaddress = ?
+       WHERE customer_id = ?`,
+      [JSON.stringify(cleanAddress), customerId]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Customer not found",
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "Shipping address updated successfully",
+      shipping_address: cleanAddress,
+    });
+  } catch (error) {
+    console.error("Update checkout address:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update shipping address",
+    });
+  }
+};

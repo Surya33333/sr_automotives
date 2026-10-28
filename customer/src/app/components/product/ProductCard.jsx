@@ -2,7 +2,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import {
-    FiStar,
+    FiStar,FiShoppingCart
 } from "react-icons/fi";
 import { useCart } from "../../context/CartContext";
 export default function ProductCard({
@@ -35,6 +35,23 @@ export default function ProductCard({
             ((mrp - sellingPrice) / mrp) * 100
         )
         : 0;
+
+    const { addItem, busy } = useCart();
+
+    async function handleAddToCart(event) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        try {
+            await addItem({
+                item_type: "product",
+                item_id: product.product_id,
+                quantity: 1,
+            });
+        } catch (error) {
+            console.error("Add to cart failed:", error);
+        }
+    }
     /* =============================================
        PRODUCT IMAGE
     ============================================= */
@@ -276,11 +293,12 @@ export default function ProductCard({
                     {/* =============================================
                         PRICE
                     ============================================= */}
-                    <div className="mt-auto pt-4">
+                    <div className="mt-auto pt-4 flex gap-3 items-center justify-between">
                         <div
                             className="
                                 flex
                                 flex-wrap
+                                flex-col
                                 items-baseline
                                 gap-x-2
                                 gap-y-1
@@ -323,6 +341,28 @@ export default function ProductCard({
                                 </span>
                             )}
                         </div>
+                        <button
+                        type="button"
+                        onClick={handleAddToCart}
+                        disabled={busy}
+                        className="
+    mt-4
+    rounded-lg
+    bg-[var(--brand-gold)]
+    px-4
+    py-3
+    text-sm
+    font-semibold
+    text-[var(--brand-black)]
+    transition-colors
+    hover:bg-[var(--brand-gold-dark)]
+    disabled:cursor-not-allowed
+    disabled:opacity-60
+    cursor-pointer
+  "
+                    >
+                        {busy ? "Updating..." : <FiShoppingCart size={19}/>}
+                    </button>
                     </div>
                 </div>
             </article>

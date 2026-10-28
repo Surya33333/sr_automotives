@@ -1,5 +1,5 @@
 import express from "express";
-import { sendOTP, verifyOTP, getOtpStatus, cancelOtp, getCustomerProfile, updateCustomerProfile } from "../controllers/authController.js";
+import { sendOTP, verifyOTP, getOtpStatus, cancelOtp, getCustomerProfile, updateCustomerProfile, updateCheckoutAddress } from "../controllers/authController.js";
 import { getCategories, getSubcategoriesByCategory, getProducts, getProductsByCategory, getFeaturedProducts, getTestimonials } from "../controllers/productController.js";
 import { addVehicle, getCustomerVehicles, updateVehicle, deleteVehicle } from "../controllers/vehicleController.js";
 import { getServices } from "../controllers/serviceController.js";
@@ -23,6 +23,7 @@ router.delete("/otp", cancelOtp);
 // Customer Profile
 router.get("/profile", authMiddleware, getCustomerProfile);
 router.put("/profile", authMiddleware, updateCustomerProfile);
+router.put("/auth/checkout-address",authMiddleware,updateCheckoutAddress);
 
 router.post("/vehicle", authMiddleware, addVehicle);//Add Vehicle for logged in user
 router.get("/vehicles", authMiddleware, getCustomerVehicles);//Get All Vehicles for logged in user
@@ -45,7 +46,13 @@ router.delete("/cart", authMiddleware, clearCart);//Clear Cart
 router.post("/cart/merge",authMiddleware, mergeCart);//Merge Guest Cart with Logged-in User Cart
 router.get("/checkout", authMiddleware, getCheckoutSummary);//Get Checkout Summary for logged in user
 
-router.post("/order", authMiddleware, createOrder);//Create Order for logged in user
+router.post("/order", authMiddleware, (req, res) => {
+  res.status(410).json({
+    success: false,
+    message: "Use /api/payments/create-order for online checkout.",
+  });
+});
+
 router.get("/orders", authMiddleware, getCustomerOrders);//Get All Orders for logged in user
 router.get("/orders/:orderId", authMiddleware, getOrderById);//Get Order Details by Order ID for logged in user
 

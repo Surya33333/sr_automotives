@@ -71,16 +71,41 @@ export const cartApi = {
     }),
 };
 
+
 export async function loadCartCatalog() {
-  const [products, services, offers] = await Promise.all([
-    apiRequest("/products"),
-    apiRequest("/services"),
-    apiRequest("/offers"),
-  ]);
+  const [productResponse, serviceResponse, offerResponse] =
+    await Promise.allSettled([
+      apiRequest("/products"),
+      apiRequest("/services"),
+      apiRequest("/offers"),
+    ]);
+
+  function extractItems(result, key) {
+    if (result.status === "rejected") {
+      console.error(
+        `Failed to load ${key}:`,
+        result.reason?.message
+      );
+      return null;
+    }
+
+    const data = result.value;
+
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.[key])) return data[key];
+    if (Array.isArray(data?.data?.[key])) {
+      return data.data[key];
+    }
+    if (Array.isArray(data?.data)) return data.data;
+
+    console.warn(`Unexpected ${key} API response`, data);
+    return null;
+  }
 
   return {
-    product: products.products || [],
-    service: services.services || [],
-    offer: offers.offers || [],
+    product: extractItems(productResponse, "products"),
+    service: extractItems(serviceResponse, "services"),
+    offer: extractItems(offerResponse, "offers"),
   };
 }
+
