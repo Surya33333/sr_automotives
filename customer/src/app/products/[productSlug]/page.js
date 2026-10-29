@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { useCart } from "../../context/CartContext";
 import Image from "next/image";
 import {
     FiChevronLeft,
@@ -53,6 +54,7 @@ const getReviewCount = (product) =>
     Number(product?.review_count ?? product?.total_reviews ?? 0);
 export default function ProductDetailsPage() {
     const params = useParams();
+    const { addItem, busy } = useCart();
     const productSlug = params?.productSlug;
     const [product, setProduct] = useState(null);
     const [allProducts, setAllProducts] = useState([]);
@@ -184,35 +186,21 @@ export default function ProductDetailsPage() {
     const increaseQuantity = () => {
         setQuantity((current) => Math.min(stock, current + 1));
     };
-    // Temporary guest cart handling.
-    // Replace with your existing cart API/context during cart integration.
-    const handleAddToCart = () => {
-        if (!product || outOfStock) return;
+    // Use the shared CartContext so the navbar count updates immediately.
+    const handleAddToCart = async () => {
+        if (!product || outOfStock || busy) return;
+
+        setCartMessage("");
         try {
-            const existingCart = JSON.parse(
-                localStorage.getItem("sr_guest_cart") || "[]"
-            );
-            const cart = Array.isArray(existingCart) ? existingCart : [];
-            const existingIndex = cart.findIndex(
-                (item) => item.product_id === product.product_id
-            );
-            if (existingIndex >= 0) {
-                cart[existingIndex].quantity = Math.min(
-                    stock,
-                    Number(cart[existingIndex].quantity || 0) + quantity
-                );
-            } else {
-                cart.push({
-                    product_id: product.product_id,
-                    quantity,
-                });
-            }
-            localStorage.setItem("sr_guest_cart", JSON.stringify(cart));
+            await addItem({
+                item_type: "product",
+                item_id: product.product_id,
+                quantity,
+            });
             setCartMessage("Product added to cart!");
-            setTimeout(() => setCartMessage(""), 2500);
         } catch (err) {
             console.error("Add to cart error:", err);
-            setCartMessage("Unable to add product to cart.");
+            setCartMessage(err?.message || "Unable to add product to cart.");
         }
     };
     if (loading) {
@@ -461,11 +449,11 @@ export default function ProductDetailsPage() {
                             <button
                                 type="button"
                                 onClick={handleAddToCart}
-                                disabled={outOfStock}
+                                disabled={outOfStock || busy}
                                 className="flex w-full items-center justify-center gap-3 rounded-md bg-[#D8B66F] px-6 py-4 text-sm font-extrabold uppercase tracking-wide text-[#080909] transition-colors hover:bg-[#B89655] disabled:cursor-not-allowed disabled:bg-[#E5DED1] disabled:text-[#6F6B64]"
                             >
                                 <FiShoppingCart size={19} />
-                                {outOfStock ? "Out of Stock" : "Add to Cart"}
+                                {outOfStock ? "Out of Stock" : busy ? "Adding..." : "Add to Cart"}
                             </button>
                             {cartMessage && (
                                 <p

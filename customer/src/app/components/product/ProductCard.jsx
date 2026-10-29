@@ -2,7 +2,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import {
-    FiStar,FiShoppingCart
+    FiStar, FiShoppingCart
 } from "react-icons/fi";
 import { useCart } from "../../context/CartContext";
 export default function ProductCard({
@@ -250,7 +250,7 @@ export default function ProductCard({
                             text-[var(--text-primary)]
                             transition-colors
                             duration-200
-                            group-hover:text-[var(--brand-gold-dark)]
+                            group-hover:text-[var(--brand-gold)]
                             sm:text-sm
                             lg:text-[15px]
                         "
@@ -293,7 +293,7 @@ export default function ProductCard({
                     {/* =============================================
                         PRICE
                     ============================================= */}
-                    <div className="mt-auto pt-4 flex gap-3 items-center justify-between">
+                    <div className="mt-auto pt-4 flex gap-3 items-stretch justify-between">
                         <div
                             className="
                                 flex
@@ -342,27 +342,27 @@ export default function ProductCard({
                             )}
                         </div>
                         <button
-                        type="button"
-                        onClick={handleAddToCart}
-                        disabled={busy}
-                        className="
-    mt-4
+                            type="button"
+                            onClick={handleAddToCart}
+                            disabled={busy}
+                            className="
     rounded-lg
     bg-[var(--brand-gold)]
-    px-4
-    py-3
-    text-sm
+    hover:text-white
     font-semibold
+    h-fit
+    w-fit
+    px-2
+    py-2
     text-[var(--brand-black)]
     transition-colors
-    hover:bg-[var(--brand-gold-dark)]
     disabled:cursor-not-allowed
     disabled:opacity-60
     cursor-pointer
   "
-                    >
-                        {busy ? "Updating..." : <FiShoppingCart size={19}/>}
-                    </button>
+                        >
+                            {busy ? "Updating..." : <FiShoppingCart size={19} />}
+                        </button>
                     </div>
                 </div>
             </article>

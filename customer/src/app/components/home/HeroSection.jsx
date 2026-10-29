@@ -36,49 +36,52 @@ const mainHero = {
     mediaType: "image",
 };
 /* =========================================================
-   TEMPORARY OFFERS
-   No images required for these temporary slides.
-   Once backend is connected, replace this array with
-   the API response.
+   BACKEND OFFERS
+   Offer images are intentionally deferred for now.
 ========================================================= */
-const temporaryOffers = [
-    {
-        id: 1,
-        type: "offer",
-        badge: "LIMITED TIME OFFER",
-        title: "Complete Interior Upgrade Package",
-        description:
-            "Upgrade your cabin with premium interior accessories bundled together at a special price.",
-        originalPrice: "₹6,999",
-        offerPrice: "₹4,999",
-        discount: "29% OFF",
-        ctaText: "View Offer",
-        ctaLink: "/offers",
-        /*
-         * No image right now.
-         * CSS background will be displayed instead.
-         */
-        desktopMedia: '/offer1.png',
-        mobileMedia: null,
-        mediaType: "image",
-    },
-    {
-        id: 2,
+const API_URL =
+    process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+
+const formatPrice = (amount) =>
+    new Intl.NumberFormat("en-IN", {
+        style: "currency",
+        currency: "INR",
+        maximumFractionDigits: 0,
+    }).format(Number(amount) || 0);
+
+function mapOfferToSlide(offer) {
+    const actualPrice = Number(offer.actual_price);
+    const offerPrice = Number(offer.offer_price);
+    const validPrices =
+        Number.isFinite(actualPrice) &&
+        Number.isFinite(offerPrice) &&
+        actualPrice > 0 &&
+        offerPrice >= 0;
+    const discount = validPrices && offerPrice < actualPrice
+        ? `${Math.round(((actualPrice - offerPrice) / actualPrice) * 100)}% OFF`
+        : "";
+
+    return {
+        id: `offer-${offer.offer_id}`,
         type: "offer",
         badge: "SPECIAL OFFER",
-        title: "Premium LED Headlights",
-        description:
-            "Upgrade your drive with brighter, safer and longer-lasting premium LED headlights.",
-        originalPrice: "₹4,499",
-        offerPrice: "₹2,999",
-        discount: "33% OFF",
-        ctaText: "Shop Offer",
-        ctaLink: "/offers",
-        desktopMedia: '/offer2.png',
+        title: offer.offer_title || "Exclusive Offer",
+        description: offer.offer_description || "Explore this exclusive offer from SR Automotives.",
+        originalPrice: validPrices && offerPrice < actualPrice
+            ? formatPrice(actualPrice)
+            : "",
+        offerPrice: Number.isFinite(offerPrice) && offerPrice >= 0
+            ? formatPrice(offerPrice)
+            : "",
+        discount,
+        ctaText: "View Offer",
+        ctaLink: `/offers/${offer.offer_id}`,
+        desktopMedia: null,
         mobileMedia: null,
         mediaType: "image",
-    },
-];
+    };
+}
+
 /* =========================================================
    SLIDE MEDIA
 ========================================================= */
@@ -505,10 +508,62 @@ function OfferContent({ slide }) {
    HERO SECTION
 ========================================================= */
 export default function HeroSection() {
-    const slides = [
-        mainHero,
-        ...temporaryOffers,
-    ];
+    const [offerSlides, setOfferSlides] = useState([]);
+    const slides = [mainHero, ...offerSlides];
+
+    useEffect(() => {
+        const controller = new AbortController();
+
+        const fetchOffers = async () => {
+            try {
+                const response = await fetch(`${API_URL}/offers`, {
+                    signal: controller.signal,
+                });
+                if (!response.ok) {
+                    throw new Error(`Unable to fetch offers (${response.status})`);
+                }
+
+                const payload = await response.json();
+                const offers = Array.isArray(payload)
+                    ? payload
+                    : Array.isArray(payload.offers)
+                        ? payload.offers
+                        : Array.isArray(payload.data)
+                            ? payload.data
+                            : [];
+
+                const now = Date.now();
+                const activeOffers = offers.filter((offer) => {
+                    if (!offer || offer.offer_id == null) return false;
+                    const status = offer.offer_status;
+                    if (status != null &&
+                        (status === false || status === 0 ||
+                            ["0", "false", "inactive", "disabled"].includes(String(status).toLowerCase()))) {
+                        return false;
+                    }
+                    const start = offer.start_date ? Date.parse(offer.start_date) : NaN;
+                    const end = offer.end_date ? Date.parse(offer.end_date) : NaN;
+                    if (Number.isFinite(start) && now < start) return false;
+                    if (Number.isFinite(end) && now > end) return false;
+                    return true;
+                });
+
+                setOfferSlides(activeOffers.map(mapOfferToSlide));
+            } catch (error) {
+                if (error.name !== "AbortError") {
+                    console.error("Unable to load hero offers:", error);
+                    setOfferSlides([]);
+                }
+            }
+        };
+
+        fetchOffers();
+        return () => controller.abort();
+    }, []);
+
+    useEffect(() => {
+        setCurrentSlide((current) => Math.min(current, slides.length - 1));
+    }, [slides.length]);
     /* ---------------- STATE ---------------- */
     const [currentSlide, setCurrentSlide] =
         useState(0);
