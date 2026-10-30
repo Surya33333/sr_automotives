@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link.js";
 import {
     FiArrowLeft,
     FiArrowRight,
@@ -107,73 +108,107 @@ export default function PopularProducts() {
                 {/* ==========================================
                     HEADER
                 ========================================== */}
-                <div
-                    className="
-                        mb-5
-                        flex
-                        flex-col
-                        gap-4
-                        sm:flex-row
-                        sm:items-center
-                        sm:justify-between
-                    "
-                >
-                    <h2
-                        className="
-                            text-2xl
-                            font-bold
-                            tracking-tight
-                            text-[var(--text-primary)]
-                            sm:text-3xl
-                        "
-                    >
-                        Popular Products
-                    </h2>
-                    {/* Tabs */}
+                {/* SECTION HEADER */}
+                <div className="mb-6">
+                    <div className="flex items-center justify-between gap-3">
+                        {/* TITLE */}
+                        <h2
+                            className="
+                text-xl
+                font-bold
+                tracking-tight
+                text-[var(--text-primary)]
+                sm:text-3xl
+            "
+                        >
+                            Popular Products
+                        </h2>
+
+                        {/* VIEW ALL - MOBILE ONLY */}
+                        <Link
+                            href="/products"
+                            className="
+                group
+                inline-flex
+                shrink-0
+                items-center
+                gap-1.5
+                text-xs
+                font-semibold
+                text-[var(--text-primary)]
+                transition-colors
+                hover:text-[var(--brand-gold-dark)]
+                sm:hidden
+            "
+                        >
+                            View All
+                            <span className="text-lg text-[var(--brand-gold-dark)] transition-transform group-hover:translate-x-1">
+                                →
+                            </span>
+                        </Link>
+
+                        {/* TABS - DESKTOP */}
+                        <div className="hidden items-center gap-2 sm:flex">
+                            {tabs.map((tab) => (
+                                <button
+                                    key={tab.id}
+                                    type="button"
+                                    onClick={() => handleTabChange(tab.id)}
+                                    className={`
+                        shrink-0
+                        cursor-pointer
+                        rounded-full
+                        px-5
+                        py-3
+                        text-xs
+                        font-semibold
+                        transition-all
+                        duration-300
+                        ${activeTab === tab.id
+                                            ? "bg-[var(--brand-gold)] text-[var(--brand-black)] shadow-sm"
+                                            : "bg-[#efeeeb] text-[var(--text-primary)] hover:bg-[var(--brand-gold-light)]"
+                                        }
+                    `}
+                                >
+                                    {tab.label}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* TABS - MOBILE ONLY */}
                     <div
                         className="
-                            flex
-                            gap-2
-                            overflow-x-auto
-                            pb-1
-                            [&::-webkit-scrollbar]:hidden
-                            [scrollbar-width:none]
-                        "
+            mt-5
+            flex
+            gap-2
+            overflow-x-auto
+            pb-1
+            sm:hidden
+            [&::-webkit-scrollbar]:hidden
+            [scrollbar-width:none]
+        "
                     >
                         {tabs.map((tab) => (
                             <button
                                 key={tab.id}
                                 type="button"
-                                onClick={() =>
-                                    handleTabChange(tab.id)
-                                }
+                                onClick={() => handleTabChange(tab.id)}
                                 className={`
-                                    shrink-0
-                                    rounded-full
-                                    px-2
-                                    py-2
-                                    text-[11px]
-                                    font-bold
-                                    transition-all
-                                    duration-300
-                                    sm:min-w-[110px]
-                                    sm:px-5
-                                    sm:text-xs
-                                    cursor-pointer
-                                    ${
-                                        activeTab === tab.id
-                                            ? `
-                                                bg-[var(--brand-gold)]
-                                                text-[var(--brand-black)]
-                                                shadow-sm
-                                            `
-                                            : `
-                                                bg-[#efeeeb]
-                                                text-[var(--text-primary)]
-                                                hover:bg-[var(--brand-gold-light)]
-                                            `
+                    shrink-0
+                    cursor-pointer
+                    rounded-full
+                    px-3
+                    py-2.5
+                    text-xs
+                    font-semibold
+                    transition-all
+                    duration-300
+                    ${activeTab === tab.id
+                                        ? "bg-[var(--brand-gold)] text-[var(--brand-black)] shadow-sm"
+                                        : "bg-[#efeeeb] text-[var(--text-primary)]"
                                     }
-                                `}
+                `}
                             >
                                 {tab.label}
                             </button>
@@ -236,16 +271,16 @@ export default function PopularProducts() {
                 {!loading &&
                     !error &&
                     currentProducts.length > 0 && (
-                    <div className="relative">
-                        {/* Previous Arrow */}
-                        {currentProducts.length > 5 && (
-                            <button
-                                type="button"
-                                aria-label="Previous products"
-                                onClick={() =>
-                                    scrollProducts("prev")
-                                }
-                                className="
+                        <div className="relative">
+                            {/* Previous Arrow */}
+                            {currentProducts.length > 5 && (
+                                <button
+                                    type="button"
+                                    aria-label="Previous products"
+                                    onClick={() =>
+                                        scrollProducts("prev")
+                                    }
+                                    className="
                                     absolute
                                     -left-4
                                     top-1/2
@@ -267,14 +302,14 @@ export default function PopularProducts() {
                                     hover:text-[var(--brand-gold)]
                                     lg:flex
                                 "
-                            >
-                                <FiArrowLeft />
-                            </button>
-                        )}
-                        {/* Product Slider */}
-                        <div
-                            ref={sliderRef}
-                            className="
+                                >
+                                    <FiArrowLeft />
+                                </button>
+                            )}
+                            {/* Product Slider */}
+                            <div
+                                ref={sliderRef}
+                                className="
                                 flex
                                 snap-x
                                 snap-mandatory
@@ -286,12 +321,12 @@ export default function PopularProducts() {
                                 [&::-webkit-scrollbar]:hidden
                                 [scrollbar-width:none]
                             "
-                        >
-                            {currentProducts.map((product) => (
-                                <div
-                                    key={product.product_id}
-                                    data-product-card
-                                    className="
+                            >
+                                {currentProducts.map((product) => (
+                                    <div
+                                        key={product.product_id}
+                                        data-product-card
+                                        className="
                                         w-[calc((100%-12px)/2)]
                                         shrink-0
                                         snap-start
@@ -299,22 +334,22 @@ export default function PopularProducts() {
                                         lg:w-[calc((100%-48px)/4)]
                                         xl:w-[calc((100%-64px)/5)]
                                     "
-                                >
-                                    <ProductCard
-                                        product={product}
-                                    />
-                                </div>
-                            ))}
-                        </div>
-                        {/* Next Arrow */}
-                        {currentProducts.length > 5 && (
-                            <button
-                                type="button"
-                                aria-label="Next products"
-                                onClick={() =>
-                                    scrollProducts("next")
-                                }
-                                className="
+                                    >
+                                        <ProductCard
+                                            product={product}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                            {/* Next Arrow */}
+                            {currentProducts.length > 5 && (
+                                <button
+                                    type="button"
+                                    aria-label="Next products"
+                                    onClick={() =>
+                                        scrollProducts("next")
+                                    }
+                                    className="
                                     absolute
                                     -right-4
                                     top-1/2
@@ -336,20 +371,20 @@ export default function PopularProducts() {
                                     hover:text-[var(--brand-gold)]
                                     lg:flex
                                 "
-                            >
-                                <FiArrowRight />
-                            </button>
-                        )}
-                    </div>
-                )}
+                                >
+                                    <FiArrowRight />
+                                </button>
+                            )}
+                        </div>
+                    )}
                 {/* ==========================================
                     EMPTY
                 ========================================== */}
                 {!loading &&
                     !error &&
                     currentProducts.length === 0 && (
-                    <div
-                        className="
+                        <div
+                            className="
                             rounded-xl
                             border
                             border-[var(--border)]
@@ -358,17 +393,17 @@ export default function PopularProducts() {
                             py-10
                             text-center
                         "
-                    >
-                        <p
-                            className="
+                        >
+                            <p
+                                className="
                                 text-sm
                                 text-[var(--text-secondary)]
                             "
-                        >
-                            No products available yet.
-                        </p>
-                    </div>
-                )}
+                            >
+                                No products available yet.
+                            </p>
+                        </div>
+                    )}
             </div>
         </section>
     );

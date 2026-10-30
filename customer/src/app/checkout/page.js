@@ -179,7 +179,6 @@ export default function CheckoutPage() {
   const [editingAddress, setEditingAddress] = useState(true);
   const [addressError, setAddressError] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("ONLINE");
-  const [step, setStep] = useState(1);
 
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [paymentError, setPaymentError] = useState("");
@@ -295,7 +294,7 @@ export default function CheckoutPage() {
 
     // 4. Close editor and continue to review order
     setEditingAddress(false);
-    setStep(2);
+
 
   } catch (error) {
     console.error("Address update failed:", error);
@@ -529,53 +528,6 @@ export default function CheckoutPage() {
           </p>
         </div>
 
-        {/* Progress */}
-        <div className="mx-auto mb-10 flex max-w-2xl items-center justify-between">
-          {[
-            "Confirm Address",
-            "Pay Securely",
-          ].map((label, index) => {
-            const number = index + 1;
-            const active = step >= number;
-
-            return (
-              <div
-                key={label}
-                className="flex min-w-0 flex-1 items-center"
-              >
-                <div className="flex min-w-0 flex-col items-center gap-2">
-                  <div
-                    className={`flex h-9 w-9 items-center justify-center rounded-full border text-sm font-bold ${active
-                      ? "border-[var(--brand-gold)] bg-[var(--brand-gold)] text-white"
-                      : "border-gray-300 bg-white text-gray-400"
-                      }`}
-                  >
-                    {step > number ? <FiCheck /> : number}
-                  </div>
-
-                  <span
-                    className={`text-center text-[10px] font-medium sm:text-xs ${active
-                      ? "text-[var(--text-primary)]"
-                      : "text-[var(--text-secondary)]"
-                      }`}
-                  >
-                    {label}
-                  </span>
-                </div>
-
-                {index < 1 && (
-                  <div
-                    className={`mx-2 mb-6 h-px flex-1 ${step > number
-                      ? "bg-[var(--brand-gold)]"
-                      : "bg-gray-300"
-                      }`}
-                  />
-                )}
-              </div>
-            );
-          })}
-        </div>
-
         <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_350px] xl:grid-cols-[minmax(0,1fr)_390px]">
           {/* LEFT */}
           <div className="min-w-0 space-y-6">
@@ -688,7 +640,7 @@ export default function CheckoutPage() {
               ) : (
                 <div className="relative rounded-lg border border-[var(--border)] bg-[var(--brand-cream)] px-4 py-3 pr-12">
                   <button type="button" aria-label="Edit shipping address" title="Edit shipping address"
-                    onClick={() => { setEditingAddress(true); setStep(1); setAddressError(""); setPaymentError(""); }}
+                    onClick={() => { setEditingAddress(true); setAddressError(""); setPaymentError(""); }}
                     className="absolute right-3 top-3 rounded-md p-2 text-[var(--brand-gold)] hover:bg-white focus-visible:outline-2 focus-visible:outline-[var(--brand-gold)]">
                     <FiEdit2 size={16} />
                   </button>
@@ -699,14 +651,7 @@ export default function CheckoutPage() {
                   </p>
                 </div>
               )}
-              {!editingAddress && step === 1 && (
-                <div className="mt-4 flex justify-end">
-                  <button type="button" onClick={() => { setAddressError(""); setStep(2); }}
-                    className="inline-flex items-center gap-2 rounded-md bg-[var(--brand-gold)] px-5 py-3 text-sm font-semibold text-white">
-                    Continue to Payment <FiArrowRight />
-                  </button>
-                </div>
-              )}
+
             </section>
 
             {/* Review */}
@@ -786,6 +731,65 @@ export default function CheckoutPage() {
 
             </section>
 
+          </div>
+
+          {/* RIGHT */}
+          <aside className="min-w-0 space-y-5 lg:sticky lg:top-24">
+            <div className="rounded-xl border border-[var(--border)] bg-white p-5 sm:p-6">
+              <div className="mb-5 flex items-center justify-between">
+                <h2 className="text-xl font-bold">Order Summary</h2>
+                <Link
+                  href="/cart"
+                  className="text-xs font-semibold text-[var(--brand-gold)] underline"
+                >
+                  Edit Cart
+                </Link>
+              </div>
+
+              <div className="space-y-4 border-b border-[var(--border)] pb-5 text-sm">
+                <div className="flex justify-between gap-3">
+                  <span className="text-[var(--text-secondary)]">
+                    Subtotal ({count} items)
+                  </span>
+                  <span className="font-semibold">
+                    {formatPrice(subtotal)}
+                  </span>
+                </div>
+
+                <div className="flex justify-between gap-3">
+                  <span className="text-[var(--text-secondary)]">
+                    Shipping
+                  </span>
+                  <span className="text-xs text-[var(--text-secondary)]">
+                    Calculated later
+                  </span>
+                </div>
+
+                <div className="flex justify-between gap-3">
+                  <span className="text-[var(--text-secondary)]">
+                    Discount
+                  </span>
+                  <span className="text-xs text-[var(--text-secondary)]">
+                    Not applied
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between gap-3 pt-5">
+                <span className="font-bold">
+                  Estimated Subtotal
+                </span>
+                <span className="text-2xl font-extrabold">
+                  {formatPrice(subtotal)}
+                </span>
+              </div>
+
+              <p className="mt-3 text-xs leading-relaxed text-[var(--text-secondary)]">
+                Final total will be calculated by the backend
+                before payment.
+              </p>
+            </div>
+
             {/* Payment */}
             <section className="rounded-xl border border-[var(--border)] bg-white p-5 sm:p-7">
               <SectionHeading
@@ -856,71 +860,13 @@ export default function CheckoutPage() {
                 <button
                   type="button"
                   onClick={handlePayment}
-                  disabled={step !== 2 || editingAddress || paymentLoading || paymentMethod === "COD"}
+                  disabled={editingAddress || savingAddress || paymentLoading || paymentMethod === "COD"}
                   className="flex items-center gap-2 rounded-md bg-[var(--brand-gold)] px-6 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {paymentLoading ? "Processing..." : paymentMethod === "COD" ? "COD Coming Soon" : "Pay Securely"}
                 </button>
               </div>
             </section>
-          </div>
-
-          {/* RIGHT */}
-          <aside className="min-w-0 space-y-5 lg:sticky lg:top-24">
-            <div className="rounded-xl border border-[var(--border)] bg-white p-5 sm:p-6">
-              <div className="mb-5 flex items-center justify-between">
-                <h2 className="text-xl font-bold">Order Summary</h2>
-                <Link
-                  href="/cart"
-                  className="text-xs font-semibold text-[var(--brand-gold)] underline"
-                >
-                  Edit Cart
-                </Link>
-              </div>
-
-              <div className="space-y-4 border-b border-[var(--border)] pb-5 text-sm">
-                <div className="flex justify-between gap-3">
-                  <span className="text-[var(--text-secondary)]">
-                    Subtotal ({count} items)
-                  </span>
-                  <span className="font-semibold">
-                    {formatPrice(subtotal)}
-                  </span>
-                </div>
-
-                <div className="flex justify-between gap-3">
-                  <span className="text-[var(--text-secondary)]">
-                    Shipping
-                  </span>
-                  <span className="text-xs text-[var(--text-secondary)]">
-                    Calculated later
-                  </span>
-                </div>
-
-                <div className="flex justify-between gap-3">
-                  <span className="text-[var(--text-secondary)]">
-                    Discount
-                  </span>
-                  <span className="text-xs text-[var(--text-secondary)]">
-                    Not applied
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between gap-3 pt-5">
-                <span className="font-bold">
-                  Estimated Subtotal
-                </span>
-                <span className="text-2xl font-extrabold">
-                  {formatPrice(subtotal)}
-                </span>
-              </div>
-
-              <p className="mt-3 text-xs leading-relaxed text-[var(--text-secondary)]">
-                Final total will be calculated by the backend
-                before payment.
-              </p>
-            </div>
 
             <div className="flex gap-3 rounded-xl border border-[var(--border)] bg-white p-5">
               <FiShield
